@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-proxy:
     name: Build ${{ matrix.asset }}
@@ -34,7 +37,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -61,7 +64,7 @@ jobs:
         shell: pwsh
         run: Copy-Item target/${{ matrix.target }}/release/atlas-ls-zed-proxy.exe ${{ matrix.asset }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.asset }}
           path: ${{ matrix.asset }}
@@ -73,9 +76,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: bundled-proxy
           merge-multiple: true
@@ -96,7 +99,7 @@ jobs:
         run: cargo check --target wasm32-wasip1
 
       - name: Upload bundled proxy set
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: bundled-proxy
           path: bundled-proxy/*
