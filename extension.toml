@@ -1,0 +1,44 @@
+id = "atlas-hcl"
+name = "Atlas HCL"
+description = "Atlas HCL language support: syntax highlighting and Atlas language-server completions."
+version = "0.1.0"
+schema_version = 1
+authors = ["Edvard LUNDIN <edvard.lundin@pm.me>"]
+repository = "https://github.com/edlundin/zed-atlasgo"
+
+[grammars.hcl]
+repository = "https://github.com/tree-sitter-grammars/tree-sitter-hcl"
+commit = "fad991865fee927dd1de5e172fb3f08ac674d914"
+
+[language_servers.atlas-ls]
+name = "Atlas LS"
+languages = [
+  "Atlas Config",
+  "Atlas HCL",
+  "Atlas PostgreSQL",
+  "Atlas MySQL",
+  "Atlas MariaDB",
+  "Atlas SQLite",
+  "Atlas ClickHouse",
+  "Atlas MSSQL",
+  "Atlas Redshift",
+  "Atlas Databricks",
+  "Atlas Oracle",
+  "Atlas Snowflake",
+  "Atlas Spanner"
+]
+
+[language_servers.atlas-ls.language_ids]
+"Atlas Config" = "atlas-config"
+"Atlas HCL" = "atlas-config"
+"Atlas PostgreSQL" = "atlas-schema-postgresql"
+"Atlas MySQL" = "atlas-schema-mysql"
+"Atlas MariaDB" = "atlas-schema-mariadb"
+"Atlas SQLite" = "atlas-schema-sqlite"
+"Atlas ClickHouse" = "atlas-schema-clickhouse"
+"Atlas MSSQL" = "atlas-schema-mssql"
+"Atlas Redshift" = "atlas-schema-redshift"
+"Atlas Databricks" = "atlas-schema-databricks"
+"Atlas Oracle" = "atlas-schema-oracle"
+"Atlas Snowflake" = "atlas-schema-snowflake"
+"Atlas Spanner" = "atlas-schema-spanner"

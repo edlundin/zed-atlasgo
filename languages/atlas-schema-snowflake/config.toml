@@ -1,0 +1,12 @@
+name = "Atlas Snowflake"
+grammar = "hcl"
+path_suffixes = ["sf.hcl"]
+line_comments = ["# ", "// "]
+tab_size = 2
+hard_tabs = false
+brackets = [
+  { start = "{", end = "}", close = true, newline = true },
+  { start = "[", end = "]", close = true, newline = true },
+  { start = "(", end = ")", close = true, newline = false },
+  { start = "\"", end = "\"", close = true, newline = false }
+]
