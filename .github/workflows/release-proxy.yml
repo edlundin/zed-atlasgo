@@ -1,4 +1,4 @@
-name: Build Bundled Proxies
+name: Build Proxy Release Assets
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -70,26 +70,13 @@ jobs:
           path: ${{ matrix.asset }}
           if-no-files-found: error
 
-  build-extension:
-    name: Build extension with bundled proxy artifacts
+  check-extension:
+    name: Check extension WASM
     needs: build-proxy
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v5
-
-      - uses: actions/download-artifact@v5
-        with:
-          path: bundled-proxy
-          merge-multiple: true
-
-      - name: Verify bundled proxy artifacts
-        run: |
-          test -f bundled-proxy/atlas-ls-zed-proxy-darwin-arm64
-          test -f bundled-proxy/atlas-ls-zed-proxy-darwin-amd64
-          test -f bundled-proxy/atlas-ls-zed-proxy-linux-arm64
-          test -f bundled-proxy/atlas-ls-zed-proxy-linux-amd64
-          test -f bundled-proxy/atlas-ls-zed-proxy-windows-amd64.exe
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -98,9 +85,18 @@ jobs:
       - name: Check extension WASM
         run: cargo check --target wasm32-wasip1
 
-      - name: Upload bundled proxy set
-        uses: actions/upload-artifact@v5
+  release:
+    name: Publish proxy release assets
+    needs: [build-proxy, check-extension]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/download-artifact@v5
         with:
-          name: bundled-proxy
-          path: bundled-proxy/*
-          if-no-files-found: error
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

@@ -17,6 +17,18 @@ Install Atlas from https://atlasgo.io/getting-started/ before using completions.
 
 Zed is stricter than VS Code when deserializing LSP capabilities. Atlas LS currently returns `executeCommandProvider.commands: null`, so the extension starts the server through a small native Rust stdio proxy that patches this to `[]`.
 
-The proxy is bundled into the extension WASM with `include_bytes!`, written to the extension work directory at runtime, and executed from there. No separate proxy install is needed.
+The proxy is downloaded at runtime from this extension's GitHub release assets, using the same semantic version as the extension. For extension version `0.1.0`, the proxy URL is:
 
-The CI workflow builds proxy binaries for supported platforms, downloads them into `bundled-proxy/`, then checks the extension with those artifacts present. Built proxy binaries are uploaded as workflow artifacts, not committed.
+```text
+https://github.com/edlundin/zed-atlasgo/releases/download/v0.1.0/atlas-ls-zed-proxy-{os}-{arch}
+```
+
+Supported asset names:
+
+- `atlas-ls-zed-proxy-darwin-arm64`
+- `atlas-ls-zed-proxy-darwin-amd64`
+- `atlas-ls-zed-proxy-linux-arm64`
+- `atlas-ls-zed-proxy-linux-amd64`
+- `atlas-ls-zed-proxy-windows-amd64.exe`
+
+The CI workflow builds these assets and publishes them to the matching GitHub release when pushing a `v*` tag.

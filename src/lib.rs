@@ -1,20 +1,24 @@
 use std::fs;
 
-use zed_extension_api::{self as zed, Architecture, LanguageServerId, Os, Result, Worktree};
+use zed_extension_api::{
+    self as zed, Architecture, DownloadedFileType, LanguageServerId, Os, Result, Worktree,
+};
 
+const EXTENSION_VERSION: &str = "0.1.0";
 const PROXY_DIR: &str = "atlas-ls-zed-proxy";
 
-struct BundledProxy {
-    filename: &'static str,
-    bytes: &'static [u8],
+struct Platform {
+    os: &'static str,
+    arch: &'static str,
+    exe: &'static str,
 }
 
 struct AtlasHclExtension;
 
 impl AtlasHclExtension {
-    fn platform() -> Result<(&'static str, &'static str, &'static str)> {
+    fn platform() -> Result<Platform> {
         let (os, arch) = zed::current_platform();
-        let (os, ext) = match os {
+        let (os, exe) = match os {
             Os::Mac => ("darwin", ""),
             Os::Linux => ("linux", ""),
             Os::Windows => ("windows", ".exe"),
@@ -24,47 +28,33 @@ impl AtlasHclExtension {
             Architecture::X8664 => "amd64",
             _ => return Err(format!("unsupported architecture: {arch:?}")),
         };
-        Ok((os, arch, ext))
-    }
-
-    fn bundled_proxy() -> Result<BundledProxy> {
-        let (os, arch, ext) = Self::platform()?;
-        match (os, arch, ext) {
-            ("darwin", "arm64", "") => Ok(BundledProxy {
-                filename: "atlas-ls-zed-proxy-darwin-arm64",
-                bytes: include_bytes!("../bundled-proxy/atlas-ls-zed-proxy-darwin-arm64"),
-            }),
-            ("darwin", "amd64", "") => Ok(BundledProxy {
-                filename: "atlas-ls-zed-proxy-darwin-amd64",
-                bytes: include_bytes!("../bundled-proxy/atlas-ls-zed-proxy-darwin-amd64"),
-            }),
-            ("linux", "arm64", "") => Ok(BundledProxy {
-                filename: "atlas-ls-zed-proxy-linux-arm64",
-                bytes: include_bytes!("../bundled-proxy/atlas-ls-zed-proxy-linux-arm64"),
-            }),
-            ("linux", "amd64", "") => Ok(BundledProxy {
-                filename: "atlas-ls-zed-proxy-linux-amd64",
-                bytes: include_bytes!("../bundled-proxy/atlas-ls-zed-proxy-linux-amd64"),
-            }),
-            ("windows", "amd64", ".exe") => Ok(BundledProxy {
-                filename: "atlas-ls-zed-proxy-windows-amd64.exe",
-                bytes: include_bytes!("../bundled-proxy/atlas-ls-zed-proxy-windows-amd64.exe"),
-            }),
-            _ => Err(format!("no bundled Atlas LS Zed proxy for {os}-{arch}")),
-        }
+        Ok(Platform { os, arch, exe })
     }
 
     fn proxy_path() -> Result<String> {
-        let proxy = Self::bundled_proxy()?;
-        let path = format!("{PROXY_DIR}/{}", proxy.filename);
+        let platform = Self::platform()?;
+        let filename = format!(
+            "atlas-ls-zed-proxy-{}-{}{}",
+            platform.os, platform.arch, platform.exe
+        );
+        let path = format!("{PROXY_DIR}/{EXTENSION_VERSION}/{filename}");
 
         if fs::metadata(&path).is_err() {
-            fs::create_dir_all(PROXY_DIR)
+            fs::create_dir_all(format!("{PROXY_DIR}/{EXTENSION_VERSION}"))
                 .map_err(|err| format!("failed to create {PROXY_DIR}: {err}"))?;
-            fs::write(&path, proxy.bytes)
-                .map_err(|err| format!("failed to write bundled Atlas LS Zed proxy: {err}"))?;
-            zed::make_file_executable(&path)
-                .map_err(|err| format!("failed to make Atlas LS Zed proxy executable: {err}"))?;
+
+            let url = format!(
+                "https://github.com/edlundin/zed-atlasgo/releases/download/v{EXTENSION_VERSION}/{filename}"
+            );
+            zed::download_file(&url, &path, DownloadedFileType::Uncompressed).map_err(|err| {
+                format!("failed to download Atlas LS Zed proxy from {url}: {err}")
+            })?;
+
+            if platform.exe.is_empty() {
+                zed::make_file_executable(&path).map_err(|err| {
+                    format!("failed to make Atlas LS Zed proxy executable: {err}")
+                })?;
+            }
         }
 
         Ok(path)
@@ -81,13 +71,13 @@ impl zed::Extension for AtlasHclExtension {
         _language_server_id: &LanguageServerId,
         worktree: &Worktree,
     ) -> Result<zed::Command> {
-        let server = worktree.which("atlas").ok_or_else(|| {
+        let atlas = worktree.which("atlas").ok_or_else(|| {
             "Atlas CLI not found on PATH. Install Atlas from https://atlasgo.io/getting-started/ and ensure `atlas` is available on PATH.".to_string()
         })?;
 
         Ok(zed::Command {
             command: Self::proxy_path()?,
-            args: vec![server, "tool".into(), "lsp".into(), "--stdio".into()],
+            args: vec![atlas, "tool".into(), "lsp".into(), "--stdio".into()],
             env: Default::default(),
         })
     }
